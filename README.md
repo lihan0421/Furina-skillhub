@@ -13,6 +13,7 @@ Personal collection of Claude Code skills.
 | [`gs-export`](skills/gs-export) | Export a Google Scholar paper to Zotero via BibTeX. |
 | [`gs-fulltext`](skills/gs-fulltext) | Get full-text access links (PDF/DOI/publisher) for a paper. |
 | [`gs-navigate-pages`](skills/gs-navigate-pages) | Navigate Google Scholar search result pages. |
+| [`connect-lab-server`](skills/connect-lab-server.md) | Template for SSH-connecting to a lab server via plink. Fill in your own host/port/credentials locally - this repo copy has them redacted. |
 
 ## Install
 
