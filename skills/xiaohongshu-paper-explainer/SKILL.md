@@ -58,11 +58,39 @@ past its environment check).
    missing.
 
 **If it's not on arXiv** (a PDF the user attached, a link to a publisher
-page, etc.), read it directly with the tools already available - Read for a
-local PDF, WebFetch for a web page - and skip the figure-download script;
-pull any figures you want to use by whatever means fits the source.
-`render_pdf_cover.py --pdf <local path>` still works for the cover
-screenshot if you have the PDF file itself.
+page, etc.) - this is the common case, since users often just hand you a
+local PDF:
+
+1. Read it directly with the Read tool (works for local PDFs) or WebFetch
+   (for a web page) to get the content. `fetch_paper_figures.py` doesn't
+   apply here - it scrapes arXiv's HTML figure structure specifically -
+   but `render_pdf_cover.py --pdf <local path>` still works for the cover
+   screenshot, same as the arXiv case.
+
+2. For the other figures, there's no reliable way to auto-locate "Figure 3"
+   on an arbitrary PDF page - layouts vary too much between papers - so
+   pull them with a short view-then-crop loop instead of one-shot
+   extraction:
+
+   ```
+   # See the full page to find the figure's pixel coordinates
+   python scripts/render_pdf_page.py --pdf paper.pdf --page 6 --out page_06.png
+   ```
+
+   Read the rendered page image, estimate the figure's bounding box, then
+   crop it:
+
+   ```
+   python scripts/render_pdf_page.py --pdf paper.pdf --page 6 --out fig3_crop.png \
+       --box 150,180,1650,960
+   ```
+
+   Read the crop back to check it - if it's cutting off part of the figure
+   or dragging in surrounding text, adjust the box and rerun. Two or three
+   iterations per figure is normal, not a sign anything's wrong - papers
+   really do lay figures out too inconsistently for a fixed heuristic to
+   get every crop right on the first try. Do this once per figure you
+   picked in Step 2, at whatever page each one lives on.
 
 ## Step 2: don't use every figure
 
@@ -72,6 +100,13 @@ headline result chart, and maybe one concrete example or case-study figure.
 Skip ablation tables, appendix figures, and anything that needs the full
 paper's context to parse. A card deck with 4 well-chosen figures reads
 better than one with all 8 of the paper's figures crammed in.
+
+This is also the point to decide arXiv-scraped vs. page-cropped for each
+figure: `fetch_paper_figures.py` is faster when it works, but if a figure
+you want is a multi-panel layout it splits awkwardly, or the paper isn't on
+arXiv at all, use `render_pdf_page.py`'s view-then-crop loop from Step 1
+instead - it works equally well against an arXiv paper's own PDF, not just
+non-arXiv ones.
 
 ## Step 3: write in the paper-explainer voice, not the paper's voice
 
@@ -170,10 +205,31 @@ of that card's narrative rather than a standalone note. Then render:
 python ../xiaohongshu-publish/scripts/make_cards.py --spec cards.json --out-dir cards/
 ```
 
-## Step 5: publish
+## Step 5: write the title and hook body
 
-Hand off to the `xiaohongshu-publish` skill from here: write a short title
-and hook body (the detailed content lives in the cards, same as any other
-card-deck post from that skill), fill in preview mode, get the user's
-explicit confirmation, then publish. Follow that skill's SKILL.md for the
-exact commands - this skill doesn't duplicate those mechanics.
+Hand off to the `xiaohongshu-publish` skill for the actual
+login/fill/preview/publish mechanics - follow that skill's SKILL.md for the
+exact commands, this skill doesn't duplicate them. But the title and hook
+body are specific to the paper-explainer format, so write them with this in
+mind:
+
+- **Work the paper's name or a recognizable abbreviation into the title**
+  if it fits in 20 characters (e.g. `"DeepSWE:换基准见真章"`). A named
+  benchmark or method reads as more credible and more searchable than a
+  generic hook, and it's usually not hard to fit alongside a short hook
+  phrase - don't drop it just because a hook-only title was shorter.
+- **Make the hook body carry real information, not commentary about the
+  post itself.** The body is prime real estate - it's what shows in the
+  feed before anyone taps in - so spend it on the paper's actual claim and
+  a concrete number, not on describing the card deck. Concretely, avoid a
+  closing line like "论文原图直接放进去了，翻完就懂了" (or the English
+  equivalent, "the paper's own figures are in here, read through and
+  you'll get it") - it's true of every post this skill produces, so it
+  says nothing this specific reader couldn't already guess, and it reads
+  as filler. Close on a real finding instead: a number, a named failure
+  mode, a comparison - something that couldn't be copy-pasted onto a
+  different paper's post unchanged.
+- Two short paragraphs is usually enough: one framing the problem/claim,
+  one landing a concrete result or the most surprising specific finding.
+  Hashtags go on their own last line, same convention as any
+  `xiaohongshu-publish` post.
